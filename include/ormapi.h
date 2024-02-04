@@ -1,6 +1,31 @@
 #ifndef ORMAPI
 #define ORMAPI
 
+#define _ORMAPI_MEMORY_MAP
+
+const size_t undefined_id = -1;
+
+class oObject;
+template <class T> class orm_ptr;
+
+class oBase
+{
+public:
+	virtual size_t open() = 0;
+	virtual size_t close() = 0;
+	virtual size_t store(const oObject& object) const = 0;
+};
+
+class oObject
+{
+private:
+	size_t _orm_id;
+	oBase* _base;
+public:
+	oObject(oBase* b) : _base(b), _orm_id(undefined_id) {}
+	inline oBase* base() const { return _base; }
+};
+
 template <class T> class orm_ptr
 {
 private:
@@ -17,6 +42,7 @@ private:
 	orm_ptr_counter<T>* ptr;
 public:
 	inline orm_ptr(T* o) {
+		static_assert(std::is_base_of<oObject, T>::value, "orm_ptr constructor needs oObject as parameter");
 		ptr = new orm_ptr_counter<T>(o);
 	}
 	inline orm_ptr(const orm_ptr<T>& o) {
@@ -49,6 +75,9 @@ public:
 	}
 
 	inline T* operator->() const { return ptr->object; }
+
+	inline size_t store() const { return ptr->object->base()->store(*ptr->object); }
+
 private:
 	inline void delete_orm_ptr_counter() {
 		if (ptr)
@@ -59,5 +88,23 @@ private:
 		}
 	}
 };
+
+#ifdef _ORMAPI_MEMORY_MAP
+
+#include <map>
+
+class oBaseMemoryMap : public oBase
+{
+private:
+	std::map<size_t, orm_ptr<oObject>> map;
+public:
+	virtual size_t open() { return 1; }
+	virtual size_t close() { map.clear(); return 1; }
+	virtual size_t store(const oObject& object) const {
+		return 1;
+	}
+};
+
+#endif
 
 #endif

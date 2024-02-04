@@ -4,11 +4,14 @@
 #include <iostream>
 #include <ormapi.h>
 
+oBaseMemoryMap myBase;
 
-class myobj
+class myobj : public oObject
 {
 public:
-    int i;
+    int i = 81;
+public:
+    myobj() : oObject(&myBase) { i = 33; }
 };
 
 int main()
@@ -21,6 +24,8 @@ int main()
         o =new myobj();
         oo = o;
         ooo = std::move(oo);
+
+        o.store();
     }
     
 
