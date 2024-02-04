@@ -5,6 +5,19 @@
 
 const size_t undefined_id = -1;
 
+
+class visitor
+{
+public:
+	size_t visit(size_t& value) { return 1; }
+};
+
+class serializable {
+public:
+	size_t serialize(visitor& serializer) const { return 1; }
+	size_t deserialize(visitor& serializer) const { return 1; }
+};
+
 class oObject;
 template <class T> class orm_ptr;
 
@@ -13,10 +26,10 @@ class oBase
 public:
 	virtual size_t open() = 0;
 	virtual size_t close() = 0;
-	virtual size_t store(const oObject& object) const = 0;
+	virtual size_t store(oObject& object) const = 0;
 };
 
-class oObject
+class oObject : public serializable
 {
 private:
 	size_t _orm_id;
@@ -76,7 +89,9 @@ public:
 
 	inline T* operator->() const { return ptr->object; }
 
-	inline size_t store() const { return ptr->object->base()->store(*ptr->object); }
+	inline size_t store() {
+		return ptr->object->base()->store(*ptr->object); 
+	}
 
 private:
 	inline void delete_orm_ptr_counter() {
@@ -100,7 +115,9 @@ private:
 public:
 	virtual size_t open() { return 1; }
 	virtual size_t close() { map.clear(); return 1; }
-	virtual size_t store(const oObject& object) const {
+	virtual size_t store(oObject& object) const {
+		visitor serializer;
+		object.serialize(serializer);
 		return 1;
 	}
 };
