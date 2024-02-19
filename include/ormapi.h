@@ -1,6 +1,8 @@
 #ifndef ORMAPI
 #define ORMAPI
 
+#include <fstream>
+
 #define _ORMAPI_MEMORY_MAP
 
 const size_t undefined_id = -1;
@@ -9,13 +11,31 @@ const size_t undefined_id = -1;
 class visitor
 {
 public:
-	size_t visit(size_t& value) { return 1; }
+	inline size_t visit(bool& value) { return visit(reinterpret_cast<unsigned char&>(value)); }
+	inline size_t visit(char& value) { return visit(reinterpret_cast<unsigned char&>(value)); }
+	inline size_t visit(signed char& value) { return visit(reinterpret_cast<unsigned char&>(value)); }
+
+	inline size_t visit(short& value) { return visit(reinterpret_cast<unsigned short&>(value)); }
+	inline size_t visit(wchar_t& value) { return visit(reinterpret_cast<unsigned short&>(value)); }
+
+	inline size_t visit(int& value) { return visit(reinterpret_cast<unsigned int&>(value)); }
+	inline size_t visit(unsigned long& value) { return visit(reinterpret_cast<unsigned int&>(value)); }
+	inline size_t visit(long& value) { return visit(reinterpret_cast<unsigned int&>(value)); }
+	inline size_t visit(float& value) { return visit(reinterpret_cast<unsigned int&>(value)); }
+
+	inline size_t visit(long long& value) { return visit(reinterpret_cast<unsigned long long&>(value)); }
+	inline size_t visit(double& value) { return visit(reinterpret_cast<unsigned long long&>(value)); }
+
+	virtual size_t visit(unsigned char& value) { return 1; };
+	virtual size_t visit(unsigned short& value) { return 1; };
+	virtual size_t visit(unsigned int& value) { return 1; };
+	virtual size_t visit(unsigned long long& value) { return 1; };
 };
 
 class serializable {
 public:
-	size_t serialize(visitor& serializer) const { return 1; }
-	size_t deserialize(visitor& serializer) const { return 1; }
+	virtual size_t serialize(visitor& serializer) = 0;
+	virtual size_t deserialize(visitor& serializer) = 0;
 };
 
 class oObject;
@@ -107,6 +127,16 @@ private:
 #ifdef _ORMAPI_MEMORY_MAP
 
 #include <map>
+
+class serializer : public visitor
+{
+private:
+	std::ofstream file;
+public:
+	serializer(const char* filename) { file.open(filename); }
+	~serializer() { file.close(); }
+	size_t visit(size_t& value) { return 1; }
+};
 
 class oBaseMemoryMap : public oBase
 {
